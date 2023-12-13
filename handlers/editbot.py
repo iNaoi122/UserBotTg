@@ -27,7 +27,6 @@ async def pagination(call: types.CallbackQuery, session: AsyncSession):
         select(Session).where(Session.owner == int(call.message.chat.id)).order_by(Session.id).limit(4).offset(
             int(call.data.split(":")[1])))
     names = [d.name for d in data.scalars()]
-    print(names)
     await call.message.edit_reply_markup(reply_markup=select_bot_key(names, int(call.data.split(":")[1])))
 
 
@@ -35,7 +34,6 @@ async def pagination(call: types.CallbackQuery, session: AsyncSession):
 async def select_post(call: types.CallbackQuery, session: AsyncSession, state: FSMContext):
     bot_data = await session.execute(select(Session).where(Session.owner == int(call.message.chat.id))
                                      .where(Session.name == call.data.split(':')[2]))
-    print(call.data.split(':')[2])
     bot_data = bot_data.scalars().first()
     await call.message.answer(text="Вы выбрали аккаунт " + bot_data.name, reply_markup=update_key())
     await state.update_data(id=bot_data.id)

@@ -9,7 +9,7 @@ def main_keyboard():
         [InlineKeyboardButton(text="Управление юзерботами", callback_data="editbot")],
 
         [InlineKeyboardButton(text="Создать рассылку", callback_data="createpush")],
-        [InlineKeyboardButton(text="Обновить данные о ботах в чатах", callback_data="update_data")],
+        # [InlineKeyboardButton(text="Обновить данные о ботах в чатах", callback_data="update_data")],
         [InlineKeyboardButton(text="Остановить рассылку", callback_data="stop")]
     ]
 

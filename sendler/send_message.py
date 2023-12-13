@@ -27,6 +27,8 @@ class Clients:
                 except PeerIdInvalid:
                     await self.load_session(cl)
                     await cl.send_photo(chat_id=data['chat'], caption=data['text'], photo=data['photo'])
+                except Exception as e:
+                    print(e)
 
     async def do_add_new_client(self, name, session_string):
         try:
@@ -48,4 +50,4 @@ class Clients:
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    pass

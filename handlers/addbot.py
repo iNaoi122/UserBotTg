@@ -10,6 +10,8 @@ from fsm.state import AddBot
 from database.model import Session
 from sendler.send_message import Clients
 
+from pyrogram.errors.exceptions import AuthKeyUnregistered
+
 add_router = Router()
 
 
@@ -35,27 +37,38 @@ async def send_code(message: types.Message, state: FSMContext, session: AsyncSes
     client = Client(name=message.text.strip(), api_id=data['api'].split("|")[0], api_hash=data['api'].split("|")[1],
                     in_memory=True)
     try:
-        await client.connect()
-        await client.storage.user_id(1)
-        string = await client.export_session_string()
-        print(client.me.id)
-        await client.send_message("me", "some")
-        await client.stop()
-        await session.merge(Session(name=message.text.strip(), session_string=string))
-        await session.commit()
-        await message.answer(text="Сессия создана", reply_markup=kb.keymain.reset_keyboard())
-        await process.do_add_new_client(name=message.text.strip(), session_string=string)
-        await state.clear()
+        some = await client.connect()
+        if not some:
+            phone_code = await client.send_code(phone_number=data['api'].split("|")[2])
+            await state.update_data(hash=phone_code.phone_code_hash)
+            await state.update_data(client=client)
+            await message.answer(text="Введите код из сообщения в тг, в коде поставьте пробел",
+                                 reply_markup=kb.keymain.reset_keyboard())
+            await state.set_state(AddBot.get_code)
+        else:
+            await client.storage.user_id(1)
+            string = await client.export_session_string()
+            await client.send_message("me", "some")
+            info = await client.get_me()
+            await session.merge(Session(name=message.text.strip(), session_string=string, user_id=info.id,
+                                        owner=message.from_user.id))
+            await session.commit()
+            await message.answer(text="Сессия создана", reply_markup=kb.keymain.reset_keyboard())
+            await process.do_add_new_client(name=message.text.strip(), session_string=string, )
+            await state.clear()
     except FloodWait:
         await message.answer(text="Подождите некоторое время перед созданием новой сессии")
-
-    except AttributeError:
+    except AuthKeyUnregistered as e:
         phone_code = await client.send_code(phone_number=data['api'].split("|")[2])
         await state.update_data(hash=phone_code.phone_code_hash)
         await state.update_data(client=client)
         await message.answer(text="Введите код из сообщения в тг, в коде поставьте пробел",
                              reply_markup=kb.keymain.reset_keyboard())
         await state.set_state(AddBot.get_code)
+        # await message.answer(text="Подождите пока сбросится сессия", reply_markup=kb.keymain.reset_keyboard())
+
+    except Exception as e:
+        print(e)
 
 
 @add_router.message(AddBot.get_code)

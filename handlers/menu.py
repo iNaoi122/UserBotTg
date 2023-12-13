@@ -1,6 +1,7 @@
 from aiogram import types, Router, F, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramForbiddenError
 from aiogram.filters.chat_member_updated import ChatMemberUpdatedFilter, MEMBER, IS_NOT_MEMBER
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -44,15 +45,14 @@ async def update_data_about_chats(call: types.CallbackQuery, session: AsyncSessi
     chats = [b.chat_id for b in chats.scalars()]
     id_s = [b.user_id for b in bots.scalars()]
     for chat in chats:
-        for i in id_s:
-            user_channel_status = await bot.get_chat_member(chat_id=int(chat), user_id=int(i))
-            print(user_channel_status)
-            if user_channel_status.status != 'left':
-                await session.merge(Chat(chat_id=chat, bot_id=i))
-                await session.commit()
+        try:
+            for i in id_s:
+                user_channel_status = await bot.get_chat_member(chat_id=int(chat), user_id=int(i))
+                print(user_channel_status)
+                if user_channel_status.status != 'left':
+                    await session.merge(Chat(chat_id=chat, bot_id=i))
+                    await session.commit()
+        except TelegramForbiddenError:
+            continue
     await call.message.answer(text="Данные о ботах в чатах обновлены")
 
-
-async def on_start(session: AsyncSession):
-
-    print("SOme")

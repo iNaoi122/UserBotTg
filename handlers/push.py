@@ -8,7 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pyrogram import Client
 
 from fsm.state import Push
-from database.model import Post, Session, Chat
+from database.model import Post, Session, Chat, AllChats
 from kb.pushpost import select_post_key, select_bot_key
 from kb.keymain import reset_keyboard
 
@@ -19,6 +19,17 @@ push_router = Router()
 
 @push_router.callback_query(F.data == "createpush")
 async def select_post(call: types.CallbackQuery, state: FSMContext, session: AsyncSession):
+    bots = await session.execute(select(Session))
+    chats = await session.execute(select(AllChats))
+    chats = [b.chat_id for b in chats.scalars()]
+    id_s = [b.user_id for b in bots.scalars()]
+    for chat in chats:
+        for i in id_s:
+            user_channel_status = await call.message.bot.get_chat_member(chat_id=int(chat), user_id=int(i))
+            print(user_channel_status)
+            if user_channel_status.status != 'left':
+                await session.merge(Chat(chat_id=chat, bot_id=i))
+                await session.commit()
     data = await session.execute(select(Post).order_by(Post.id).limit(4))
     names = [d.name for d in data.scalars()]
     await call.message.answer(text="Выберите пост для рассылки", reply_markup=select_post_key(names))
@@ -79,7 +90,7 @@ async def input_time(message: types.Message, state: FSMContext, scheduler: Async
             if client.is_connected:
                 chats = await session.execute(select(Chat).where(Chat.bot_id == f"{bot_id.id}"))
                 await process.do_add_new_client(name=data["bot"].name, session_string=data['bot'].session_string)
-                for chat in chats.scalars():
+                for chat in chats.scalars()[:5]:
                     chat: Chat
                     scheduler.add_job(process.do_send_message, trigger="interval",
                                       max_instances=10,

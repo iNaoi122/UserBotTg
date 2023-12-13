@@ -13,7 +13,6 @@ edit_router = Router()
 
 @edit_router.callback_query(F.data == "editpost")
 async def edit_post(call: types.CallbackQuery, session: AsyncSession):
-    print(call.message.chat.id)
     data = await session.execute(select(Post).where(Post.owner == int(call.message.chat.id)).order_by(Post.id).limit(4))
     names = [d.name for d in data.scalars()]
     await call.message.answer(text="Выберите пост", reply_markup=select_post_key(names))
