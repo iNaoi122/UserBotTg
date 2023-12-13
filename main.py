@@ -1,6 +1,6 @@
 import asyncio
 import logging
-
+import os
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -24,9 +24,13 @@ from sendler.send_message import Clients
 
 
 async def main():
-    config = dotenv_values(".env")
-    print(config['TOKEN'])
-    bot = Bot(token=config['TOKEN'])
+    try:
+        config = dotenv_values(".env")
+        print(config['TOKEN'])
+        bot = Bot(token=config['TOKEN'])
+    except:
+        print(os.environ.get('TOKEN'))
+        bot = Bot(token=os.environ.get('TOKEN'))
 
     scheduler = AsyncIOScheduler()
     scheduler.start()
